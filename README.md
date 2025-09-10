@@ -61,7 +61,9 @@ Mini-Opinion-Analyzer/
 │── analyzer.py          # Main script
 │── requirements.txt     # Required Python packages
 │── README.md            # Project documentation
+│── LICENSE              # Open-source license (MIT, Apache, etc.)
 │── chart.png            # Output sentiment distribution chart (generated after run)
+
 ```
 
 ---
