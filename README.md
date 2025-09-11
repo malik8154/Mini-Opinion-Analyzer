@@ -50,7 +50,7 @@ python analyzer.py
 
 Bar chart showing distribution of predicted sentiments:
 
-![Sentiment Chart](chart.png)
+![Sentiment Chart](CHART.png)
 
 ---
 
