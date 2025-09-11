@@ -6,8 +6,10 @@ import matplotlib.pyplot as plt
 from nltk.corpus import movie_reviews, stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report, confusion_matrix
 
-# Download resources (only first run)
+# Download resources
 nltk.download("movie_reviews")
 nltk.download("stopwords")
 
@@ -15,37 +17,19 @@ nltk.download("stopwords")
 # 1. Collect dataset
 # ----------------------------
 docs = []
-
-# Take 25 positive + 25 negative reviews
 for category in movie_reviews.categories():
     for fileid in movie_reviews.fileids(category)[:25]:
         docs.append((movie_reviews.raw(fileid), category))
 
-# Neutral sentences (custom made)
+# Neutral examples (limitation: different domain)
 neutral_headlines = [
     "The weather is expected to be partly cloudy tomorrow",
     "The company announced its quarterly earnings report",
     "A train arrived at the station on schedule",
     "The event will take place at the community center",
     "He walked to the store to buy some groceries",
-    "The meeting is scheduled for next Monday",
-    "The book was published in 2019 by a local author",
-    "The university released its new academic calendar",
-    "The temperature is 22 degrees Celsius",
-    "The bus stops here every morning at 9 AM",
-    "The match ended in a draw with no goals scored",
-    "A new bridge was opened for traffic last week",
-    "The library has extended its opening hours",
-    "The museum will host an art exhibition this weekend",
-    "The software update will be available for download soon",
-    "Traffic is moving slowly on the main highway",
-    "The report was submitted to the committee yesterday",
-    "The store opens daily at 10 AM",
-    "The office will be closed on public holidays",
-    "The lecture will cover modern economic theories"
 ]
-
-docs.extend([(headline, "neutral") for headline in neutral_headlines])
+docs.extend([(h, "neutral") for h in neutral_headlines])
 
 # Shuffle dataset
 random.shuffle(docs)
@@ -66,32 +50,43 @@ def preprocess(text):
 clean_texts = [preprocess(t) for t in texts]
 
 # ----------------------------
-# 3. Feature extraction
+# 3. Train/Test Split
 # ----------------------------
-vectorizer = TfidfVectorizer()
-X = vectorizer.fit_transform(clean_texts)
-y = labels
+X_train, X_test, y_train, y_test = train_test_split(
+    clean_texts, labels, test_size=0.3, stratify=labels, random_state=42
+)
 
 # ----------------------------
-# 4. Train model
+# 4. Feature extraction (TF-IDF)
 # ----------------------------
-model = LogisticRegression(max_iter=1000)
-model.fit(X, y)
+vectorizer = TfidfVectorizer(ngram_range=(1,2), min_df=2, max_df=0.9)
+X_train_vec = vectorizer.fit_transform(X_train)
+X_test_vec = vectorizer.transform(X_test)
 
 # ----------------------------
-# 5. Predictions
+# 5. Train model
 # ----------------------------
-preds = model.predict(X)
+model = LogisticRegression(max_iter=1000, class_weight="balanced")
+model.fit(X_train_vec, y_train)
 
 # ----------------------------
-# 6. Results + Visualization
+# 6. Evaluation
 # ----------------------------
-df = pd.DataFrame({"Text": texts, "True": labels, "Predicted": preds})
-print(df.head(15))
+y_pred = model.predict(X_test_vec)
 
+print("Classification Report:")
+print(classification_report(y_test, y_pred))
+
+print("\nConfusion Matrix:")
+print(confusion_matrix(y_test, y_pred))
+
+# ----------------------------
+# 7. Visualization
+# ----------------------------
+df = pd.DataFrame({"Text": X_test, "True": y_test, "Predicted": y_pred})
 sentiment_counts = df["Predicted"].value_counts()
 sentiment_counts.plot(kind="bar", color=["green", "red", "blue"])
-plt.title("Sentiment Distribution")
+plt.title("Sentiment Distribution (Test Set)")
 plt.xlabel("Sentiment")
 plt.ylabel("Count")
 plt.tight_layout()
